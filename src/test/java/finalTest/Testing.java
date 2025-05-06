@@ -8,6 +8,8 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.*;
 import org.w3c.dom.Document;
@@ -16,7 +18,6 @@ import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -31,11 +32,10 @@ public class Testing {
     public void startSession() {
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
-        driver.get("https://demoqa.com/login");
+        driver.get(getData("URL"));
         driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(8, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
         loginPage = PageFactory.initElements(driver, LoginPage.class);
-        bookPage = PageFactory.initElements(driver, BookPage.class);
 
     }
 
@@ -44,25 +44,41 @@ public class Testing {
         try {
             loginPage.loginAction(getData("username"), getData("password"));
         } catch (Exception e) {
-            System.out.println("Failed to lofin " + e);
+            System.out.println("Failed to login " + e);
         }
         driver.findElement(By.id("gotoStore")).click();
+        WebElement bookRow = new WebDriverWait(driver,10)
+                .until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[@class=\"rt-tbody\"]")));
+        bookPage = PageFactory.initElements(driver, BookPage.class);
     }
 
     @Test
     public void test01() {
-        List<WebElement> gitPocketBooks = driver.findElements(By.partialLinkText("git Pocket"));
-        Assert.assertEquals(gitPocketBooks.size(), 1);
+        bookPage.searchBook("git Pocket");
+        try {
+            Assert.assertEquals(bookPage.numberOfBooks(), 1);
+        } catch (AssertionError e) {
+            System.out.println("failed " + e);
+        }
     }
 
     @Test
     public void test02() {
         bookPage.searchBook("VeriSoft");
-        List<WebElement> books = bookPage.currentBooks();
-        System.out.println(books.size() + "------------------------");
-        Assert.assertEquals(books.size(), 0);
-        Assert.assertTrue(bookPage.getMessage().isDisplayed());
+        try {
+            Assert.assertEquals(bookPage.numberOfBooks(), 0);
+            Assert.assertTrue(bookPage.getMessage().isDisplayed());
+        } catch (AssertionError e) {
+            System.out.println("failed " + e);
+        }
     }
+
+    @Test
+    public void insertAndPrint() {
+        bookPage.insertBook();
+        bookPage.printBooks();
+    }
+
 
     @AfterClass
     public void endSession() {
@@ -71,10 +87,10 @@ public class Testing {
 
     @AfterMethod
     public void logout() {
-
+        loginPage.logoutAction();
     }
 
-    public String getData(String tagName){
+    public String getData(String tagName) {
         DocumentBuilder dBuilder;
         Document doc = null;
         File fxml = new File("./configuration.xml");

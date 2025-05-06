@@ -14,11 +14,17 @@ public class LoginPage {
 
     @FindBy(how = How.ID, using = "login")
     private WebElement submit;
+    @FindBy(how = How.ID, using = "submit")
+    private WebElement logout;
+
 
     public void loginAction(String username, String pass) {
         userName.sendKeys(username);
         password.sendKeys(pass);
         submit.click();
+    }
+    public void logoutAction() {
+        logout.click();
     }
 
 
